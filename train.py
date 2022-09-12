@@ -23,7 +23,7 @@ parser = argparse.ArgumentParser(description='Running custom PyTorch models in E
 parser.add_argument('--data-directory', type=str, required=True)
 parser.add_argument('--epochs', type=int, required=True)
 parser.add_argument('--learning-rate', type=float, required=True)
-parser.add_argument('--out-directory', type=str, required=False)
+parser.add_argument('--out-directory', type=str, required=True)
 
 args, unknown = parser.parse_known_args()
 
