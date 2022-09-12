@@ -15,25 +15,32 @@ You run this pipeline via Docker. This encapsulates all dependencies and package
 3. Create a new Edge Impulse project, and add data from the [continuous gestures](https://docs.edgeimpulse.com/docs/continuous-gestures) dataset.
 4. Under **Create impulse** add a 'Spectral features' processing block, and a random ML block.
 5. Open a command prompt or terminal window.
-6. Fetch new data via:
+6. Initialize the block:
+
+    ```
+    $ edge-impulse-blocks init
+    # Answer the questions, select "other" for 'What type of data does this model operate on?'
+    ```
+
+7. Fetch new data via:
 
     ```
     $ edge-impulse-blocks runner --download-data data/
     ```
 
-7. Build the container:
+8. Build the container:
 
     ```
     $ docker build -t custom-ml-pytorch .
     ```
 
-8. Run the container to test the script (you don't need to rebuild the container if you make changes):
+9. Run the container to test the script (you don't need to rebuild the container if you make changes):
 
     ```
     $ docker run --rm -v $PWD:/app custom-ml-pytorch --data-directory /app/data --epochs 30 --learning-rate 0.01 --out-directory out/
     ```
 
-9. This creates two .tflite files and a saved model ZIP file in the 'out' directory.
+10. This creates two .tflite files and a saved model ZIP file in the 'out' directory.
 
 #### Adding extra dependencies
 
@@ -55,20 +62,13 @@ To get up-to-date data from your project:
 
 You can also push this block back to Edge Impulse, that makes it available like any other ML block so you can retrain your model when new data comes in, or deploy the model to device. See [Docs > Adding custom learning blocks](https://docs.edgeimpulse.com/docs/edge-impulse-studio/organizations/adding-custom-transfer-learning-models) for more information.
 
-1. Initialize the block:
-
-    ```
-    $ edge-impulse-blocks init
-    # Answer the questions, select "other" for 'What type of data does this model operate on?'
-    ```
-
-2. Push the block:
+1. Push the block:
 
     ```
     $ edge-impulse-blocks push
     ```
 
-3. The block is now available under any of your projects. Depending on the data your block operates on, you can add it via:
+2. The block is now available under any of your projects. Depending on the data your block operates on, you can add it via:
     * Object Detection: **Create impulse > Add learning block > Object Detection (Images)**, then select the block via 'Choose a different model' on the 'Object detection' page.
     * Image classification: **Create impulse > Add learning block > Transfer learning (Images)**, then select the block via 'Choose a different model' on the 'Transfer learning' page.
     * Audio classification: **Create impulse > Add learning block > Transfer Learning (Keyword Spotting)**, then select the block via 'Choose a different model' on the 'Transfer learning' page.
