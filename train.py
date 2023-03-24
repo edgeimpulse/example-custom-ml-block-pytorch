@@ -5,18 +5,11 @@ import argparse, os, sys, random, logging
 import numpy as np
 from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset, DataLoader
-from conversion import convert_to_tf_lite, save_saved_model, pytorch_to_savedmodel
-import tensorflow as tf
-
-# Lower TensorFlow log levels
-tf.get_logger().setLevel(logging.ERROR)
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # Set random seeds for repeatable results
 RANDOM_SEED = 3
 random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
-tf.random.set_seed(RANDOM_SEED)
 
 # Load files
 parser = argparse.ArgumentParser(description='Running custom PyTorch models in Edge Impulse')
@@ -140,17 +133,12 @@ print('')
 print('Training network OK')
 print('')
 
-# Use this flag to disable per-channel quantization for a model.
-# This can reduce RAM usage for convolutional models, but may have
-# an impact on accuracy.
-disable_per_channel_quantization = False
-
-saved_model = pytorch_to_savedmodel(model, MODEL_INPUT_SHAPE)
-
-# Save the model to disk
-save_saved_model(saved_model, args.out_directory)
-
-# Create tflite files (f32 / i8)
-validation_dataset = tf.data.Dataset.from_tensor_slices((X_test, Y_test))
-convert_to_tf_lite(saved_model, args.out_directory, validation_dataset, MODEL_INPUT_SHAPE,
-    'model.tflite', 'model_quantized_int8_io.tflite', disable_per_channel_quantization)
+# Export the model
+torch.onnx.export(model,
+                  torch.randn(tuple([1] + list(X_train.shape[1:]))),
+                  os.path.join(args.out_directory, 'model.onnx'),
+                  export_params=True,
+                  opset_version=10,
+                  do_constant_folding=True,
+                  input_names=['input'],
+                  output_names=['output'])
