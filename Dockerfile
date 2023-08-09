@@ -1,8 +1,25 @@
-# syntax = docker/dockerfile:experimental
-FROM ubuntu:20.04
+# syntax = docker/dockerfile:experimental@sha256:3c244c0c6fc9d6aa3ddb73af4264b3a23597523ac553294218c13735a2c6cf79
+ARG UBUNTU_VERSION=20.04
+
+ARG ARCH=
+ARG CUDA=11.2
+FROM nvidia/cuda${ARCH:+-$ARCH}:${CUDA}.2-base-ubuntu${UBUNTU_VERSION} as base
+ARG CUDA
+ARG CUDNN=8.1.0.77-1
+ARG CUDNN_MAJOR_VERSION=8
+ARG LIB_DIR_PREFIX=x86_64
+ARG LIBNVINFER=8.0.0-1
+ARG LIBNVINFER_MAJOR_VERSION=8
+# Let us install tzdata painlessly
+ENV DEBIAN_FRONTEND=noninteractive
+
 WORKDIR /app
 
-ARG DEBIAN_FRONTEND=noninteractive
+# CUDA drivers
+SHELL ["/bin/bash", "-c"]
+COPY dependencies/install_cuda.sh ./install_cuda.sh
+RUN ./install_cuda.sh && \
+    rm install_cuda.sh
 
 # Install base packages (like Python and pip)
 RUN apt update && apt install -y curl zip git lsb-release software-properties-common apt-transport-https vim wget python3 python3-pip

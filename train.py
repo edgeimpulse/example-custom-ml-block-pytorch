@@ -33,6 +33,10 @@ classes = Y_train.shape[1]
 
 MODEL_INPUT_SHAPE = X_train.shape[1:]
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print('Training on', device)
+print('')
+
 # Small pyTorch neural network with 2 hidden layers
 class Net(nn.Module):
     def __init__(self):
@@ -53,16 +57,17 @@ class Net(nn.Module):
 
 # initialize the NN
 model = Net()
+model.to(device)
 
 # loss function and optimizer
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, betas=(0.9, 0.999))
 
 # convert to pyTorch float tensors
-X_train = torch.FloatTensor(X_train)
-Y_train = torch.FloatTensor(Y_train)
-X_test = torch.FloatTensor(X_test)
-Y_test = torch.FloatTensor(Y_test)
+X_train = torch.FloatTensor(X_train).to(device)
+Y_train = torch.FloatTensor(Y_train).to(device)
+X_test = torch.FloatTensor(X_test).to(device)
+Y_test = torch.FloatTensor(Y_test).to(device)
 
 # create data loaders
 train_dataloader = DataLoader(TensorDataset(X_train, Y_train), batch_size=16)
@@ -121,6 +126,9 @@ for data, target in test_dataloader:
     # convert output probabilities to predicted class
     _, pred = torch.max(output, 1)
 
+    pred = pred.cpu()
+    target = target.cpu()
+
     for i in range(len(pred)):
         if (pred[i].item() == np.argmax(target[i]).item()):
             test_correct = test_correct + 1
@@ -134,7 +142,7 @@ print('Training network OK')
 print('')
 
 # Export the model
-torch.onnx.export(model,
+torch.onnx.export(model.cpu(),
                   torch.randn(tuple([1] + list(X_train.shape[1:]))),
                   os.path.join(args.out_directory, 'model.onnx'),
                   export_params=True,
