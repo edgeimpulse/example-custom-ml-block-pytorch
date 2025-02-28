@@ -35,8 +35,22 @@ You run this pipeline via Docker. This encapsulates all dependencies and package
 
 9. Run the container to test the script (you don't need to rebuild the container if you make changes):
 
+    **macOS, Linux**
+
     ```
     $ docker run --rm -v $PWD:/app custom-ml-pytorch --data-directory /app/data --epochs 30 --learning-rate 0.01 --out-directory out/
+    ```
+
+    **Windows (Command prompt)**
+
+    ```
+    $ docker run --rm -v "%cd%":/app custom-ml-pytorch --data-directory /app/data --epochs 30 --learning-rate 0.01 --out-directory out/
+    ```
+
+    **Windows (Powershell)**
+
+    ```
+    $ docker run --rm -v ${PWD}$:/app custom-ml-pytorch --data-directory /app/data --epochs 30 --learning-rate 0.01 --out-directory out/
     ```
 
 10. This creates an .onnx file in the 'out' directory.

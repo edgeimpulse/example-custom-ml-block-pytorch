@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import argparse, os, sys, random, logging
 import numpy as np
-from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset, DataLoader
 
 # Set random seeds for repeatable results
