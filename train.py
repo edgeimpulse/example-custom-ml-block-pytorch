@@ -64,7 +64,7 @@ class Net(nn.Module):
     def forward(self,x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.softmax(self.fc3(x), dim=1)
         return x
 
 # initialize the NN
@@ -136,7 +136,7 @@ for data, target in test_dataloader:
     output = model(data)
     # calculate the loss
     loss = criterion(output, target)
-    # convert output logits to predicted class
+    # convert output probabilities to predicted class
     _, pred = torch.max(output, 1)
 
     pred = pred.cpu()
