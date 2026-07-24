@@ -1,40 +1,44 @@
-# syntax = docker/dockerfile:experimental@sha256:3c244c0c6fc9d6aa3ddb73af4264b3a23597523ac553294218c13735a2c6cf79
-ARG UBUNTU_VERSION=22.04
+ARG UBUNTU_VERSION=24.04
 
 ARG ARCH=
-ARG CUDA=12.9
-FROM nvidia/cuda${ARCH:+-$ARCH}:${CUDA}.0-base-ubuntu${UBUNTU_VERSION} as base
+ARG CUDA=12.9.1
+ARG CUDA_SHORT=12.9
+ARG CUDA_PACKAGE_VERSION=12-9
+ARG CUDA_FLAVOR=base
+FROM nvidia/cuda${ARCH:+-$ARCH}:${CUDA}-${CUDA_FLAVOR}-ubuntu${UBUNTU_VERSION} AS base
 ARG CUDA
-ARG CUDNN=9.10.2.21-1
-ARG CUDNN_MAJOR_VERSION=9
-ARG LIB_DIR_PREFIX=x86_64
-ARG LIBNVINFER=10.0.0-1
-ARG LIBNVINFER_MAJOR_VERSION=10
-# Let us install tzdata painlessly
+ARG CUDA_SHORT
+ARG CUDA_PACKAGE_VERSION
 ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
-# CUDA drivers
-SHELL ["/bin/bash", "-c"]
+# Install Python, pip, and dos2unix (as when you check out install_cuda.sh on Windows it converts to CRLF which bash does not like in the next step)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+        python3 python3-pip dos2unix && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install NVIDIA CUDA/cuDNN runtime libraries needed by TensorFlow on x86.
 COPY dependencies/install_cuda.sh ./install_cuda.sh
-RUN /bin/bash ./install_cuda.sh && \
-    rm install_cuda.sh
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    dos2unix ./install_cuda.sh && \
+    /bin/bash ./install_cuda.sh && \
+    rm install_cuda.sh && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install base packages (like Python and pip)
-RUN apt update && apt install -y curl zip git lsb-release software-properties-common apt-transport-https vim wget python3 python3-pip
-RUN python3 -m pip install --upgrade pip==25.3
+# Copy Python requirements in and install them (--break-system-packages is required if we don't use a venv).
 
-# Install CMake (separate script as this requires a different command on M1 Macs)
-COPY dependencies/install_cmake.sh install_cmake.sh
-RUN /bin/bash install_cmake.sh && \
-    rm install_cmake.sh
+# Use --no-deps because requirements.txt pins the exact runtime set; letting torch resolve dependencies
+# pulls the full CUDA wheel stack instead of the smaller CUDA 12.9 set used here.
+COPY requirements_torch_2.13.0_cuda.txt ./
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install --break-system-packages --no-deps -r requirements_torch_2.13.0_cuda.txt
 
-RUN apt update && apt install -y protobuf-compiler
-
-# Copy Python requirements in and install them
+# Additional user-provided packages
 COPY requirements.txt ./
-RUN pip3 install -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install --break-system-packages -r requirements.txt
 
 # Copy the rest of your training scripts in
 COPY . ./

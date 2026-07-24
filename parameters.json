@@ -2,8 +2,8 @@
     "version": 1,
     "type": "machine-learning",
     "info": {
-        "name": "PyTorch MLP w/ CUDA",
-        "description": "Test w/ cuda drivers",
+        "name": "PyTorch multi-layer perceptron",
+        "description": "Demonstration of a simple PyTorch custom learn block with CUDA drivers that can run on both CPU and GPU.",
         "operatesOn": "other",
         "indRequiresGpu": false,
         "repositoryUrl": "https://github.com/edgeimpulse/example-custom-ml-block-pytorch"

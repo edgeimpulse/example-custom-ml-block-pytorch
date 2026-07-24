@@ -53,11 +53,15 @@ You run this pipeline via Docker. This encapsulates all dependencies and package
     $ docker run --rm -v ${PWD}$:/app custom-ml-pytorch --data-directory /app/data --epochs 30 --learning-rate 0.01 --out-directory out/
     ```
 
+    > **Training on GPU:** If you're on an x86 machine with an Nvidia GPU, you can pass `--gpus=all` (right after `docker run`) to train on GPU.
+
 10. This creates an .onnx file in the 'out' directory.
 
 #### Adding extra dependencies
 
 If you have extra packages that you want to install within the container, add them to `requirements.txt` and rebuild the container.
+
+PyTorch is installed in the Dockerfile from the CUDA 12.9 wheel index with only the CUDA wheel libraries that are not already supplied by the base image. This keeps the image smaller than installing the full default PyTorch CUDA dependency set from PyPI.
 
 #### Adding new arguments
 

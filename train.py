@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import argparse, os, sys, random, logging
 import numpy as np
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import Dataset, DataLoader
 
 # Set random seeds for repeatable results
 RANDOM_SEED = 3
@@ -24,9 +24,9 @@ if not os.path.exists(args.out_directory):
 
 # grab train/test set
 X_train = np.load(os.path.join(args.data_directory, 'X_split_train.npy'), mmap_mode='r')
-Y_train = np.load(os.path.join(args.data_directory, 'Y_split_train.npy'))
+Y_train = np.load(os.path.join(args.data_directory, 'Y_split_train.npy'), mmap_mode='r')
 X_test = np.load(os.path.join(args.data_directory, 'X_split_test.npy'), mmap_mode='r')
-Y_test = np.load(os.path.join(args.data_directory, 'Y_split_test.npy'))
+Y_test = np.load(os.path.join(args.data_directory, 'Y_split_test.npy'), mmap_mode='r')
 
 classes = Y_train.shape[1]
 
@@ -35,6 +35,19 @@ MODEL_INPUT_SHAPE = X_train.shape[1:]
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print('Training on', device)
 print('')
+
+class NumpyDataset(Dataset):
+    def __init__(self, features, labels):
+        self.features = features
+        self.labels = labels
+
+    def __len__(self):
+        return self.labels.shape[0]
+
+    def __getitem__(self, index):
+        features = torch.tensor(self.features[index], dtype=torch.float32)
+        label = torch.tensor(np.argmax(self.labels[index]), dtype=torch.long)
+        return features, label
 
 # Small pyTorch neural network with 2 hidden layers
 class Net(nn.Module):
@@ -51,7 +64,7 @@ class Net(nn.Module):
     def forward(self,x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = F.softmax(self.fc3(x), dim=1)
+        x = self.fc3(x)
         return x
 
 # initialize the NN
@@ -62,15 +75,9 @@ model.to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, betas=(0.9, 0.999))
 
-# convert to pyTorch float tensors
-X_train = torch.FloatTensor(X_train).to(device)
-Y_train = torch.FloatTensor(Y_train).to(device)
-X_test = torch.FloatTensor(X_test).to(device)
-Y_test = torch.FloatTensor(Y_test).to(device)
-
 # create data loaders
-train_dataloader = DataLoader(TensorDataset(X_train, Y_train), batch_size=16)
-test_dataloader = DataLoader(TensorDataset(X_test, Y_test), batch_size=16)
+train_dataloader = DataLoader(NumpyDataset(X_train, Y_train), batch_size=16)
+test_dataloader = DataLoader(NumpyDataset(X_test, Y_test), batch_size=16)
 
 # training loop
 model.train()
@@ -83,6 +90,8 @@ for epoch in range(args.epochs):
     for i, data in enumerate(train_dataloader, 0):
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data
+        inputs = inputs.to(device)
+        labels = labels.to(device)
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -99,6 +108,8 @@ for epoch in range(args.epochs):
     for i, data in enumerate(test_dataloader, 0):
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data
+        inputs = inputs.to(device)
+        labels = labels.to(device)
 
         # validate output
         outputs = model(inputs)
@@ -106,7 +117,7 @@ for epoch in range(args.epochs):
 
         # log validation loss
         running_val_loss += loss.item()
-        running_val_loss_count = running_loss_count + 1
+        running_val_loss_count = running_val_loss_count + 1
 
     print(f'Epoch {epoch + 1}: loss: {running_loss / running_loss_count:.3f}, ' +
           f'val_loss: {running_val_loss / running_val_loss_count:.3f}')
@@ -118,18 +129,21 @@ test_correct = 0
 test_total = 0
 
 for data, target in test_dataloader:
+    data = data.to(device)
+    target = target.to(device)
+
     # forward pass: compute predicted outputs by passing inputs to the model
     output = model(data)
     # calculate the loss
     loss = criterion(output, target)
-    # convert output probabilities to predicted class
+    # convert output logits to predicted class
     _, pred = torch.max(output, 1)
 
     pred = pred.cpu()
     target = target.cpu()
 
     for i in range(len(pred)):
-        if (pred[i].item() == np.argmax(target[i]).item()):
+        if (pred[i].item() == target[i].item()):
             test_correct = test_correct + 1
         test_total = test_total + 1
 
@@ -141,11 +155,16 @@ print('Training network OK')
 print('')
 
 # Export the model
-torch.onnx.export(model.cpu(),
+export_model = nn.Sequential(model.cpu(), nn.Softmax(dim=1))
+export_model.eval()
+
+torch.onnx.export(export_model,
                   torch.randn(tuple([1] + list(X_train.shape[1:]))),
                   os.path.join(args.out_directory, 'model.onnx'),
                   export_params=True,
                   opset_version=10,
                   do_constant_folding=True,
+                  dynamo=False,
+                  external_data=False,
                   input_names=['input'],
                   output_names=['output'])
