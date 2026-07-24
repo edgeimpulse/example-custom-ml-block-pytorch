@@ -28,39 +28,17 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     rm -rf /var/lib/apt/lists/*
 
 # Copy Python requirements in and install them (--break-system-packages is required if we don't use a venv).
-# Installing torch from PyPI with dependencies pulls the full CUDA wheel set. The base image already
-# provides most CUDA 12.9 libraries, so install the CUDA 12.9 torch wheel without dependencies and add
-# only the CUDA wheel libraries that libtorch still needs at runtime.
+
+# Use --no-deps because requirements.txt pins the exact runtime set; letting torch resolve dependencies
+# pulls the full CUDA wheel stack instead of the smaller CUDA 12.9 set used here.
+COPY requirements_torch_2.13.0_cuda.txt ./
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install --break-system-packages --no-deps -r requirements_torch_2.13.0_cuda.txt
+
+# Additional user-provided packages
 COPY requirements.txt ./
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip3 install --break-system-packages \
-        onnx==1.22.0 \
-        filelock \
-        typing-extensions \
-        'setuptools>=77.0.3' \
-        'sympy>=1.13.3' \
-        'networkx>=2.5.1' \
-        jinja2 \
-        'fsspec>=0.8.5' && \
-    pip3 install --break-system-packages --no-deps \
-        --index-url https://download.pytorch.org/whl/cu129 \
-        'torch==2.13.0+cu129' && \
-    pip3 install --break-system-packages \
-        'cuda-toolkit[cufile,cupti]==12.9.1' \
-        'nvidia-cusparselt-cu12==0.8.1' \
-        'nvidia-nccl-cu12==2.29.7' \
-        'nvidia-nvshmem-cu12==3.4.5'
-
-# # Install CMake (separate script as this requires a different command on M1 Macs)
-# COPY dependencies/install_cmake.sh install_cmake.sh
-# RUN /bin/bash install_cmake.sh && \
-#     rm install_cmake.sh
-
-# RUN apt update && apt install -y protobuf-compiler
-
-# # Copy Python requirements in and install them
-# COPY requirements.txt ./
-# RUN pip3 install -r requirements.txt
+    pip3 install --break-system-packages -r requirements.txt
 
 # Copy the rest of your training scripts in
 COPY . ./

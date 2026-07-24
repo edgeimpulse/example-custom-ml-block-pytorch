@@ -1,2 +1,1 @@
-onnx==1.22.0
-torch==2.13.0
+# Put any extra packages that you need here
