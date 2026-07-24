@@ -64,7 +64,7 @@ class Net(nn.Module):
     def forward(self,x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = F.softmax(self.fc3(x), dim=1)
+        x = self.fc3(x)
         return x
 
 # initialize the NN
@@ -136,7 +136,7 @@ for data, target in test_dataloader:
     output = model(data)
     # calculate the loss
     loss = criterion(output, target)
-    # convert output probabilities to predicted class
+    # convert output logits to predicted class
     _, pred = torch.max(output, 1)
 
     pred = pred.cpu()
@@ -155,7 +155,10 @@ print('Training network OK')
 print('')
 
 # Export the model
-torch.onnx.export(model.cpu(),
+export_model = nn.Sequential(model.cpu(), nn.Softmax(dim=1))
+export_model.eval()
+
+torch.onnx.export(export_model,
                   torch.randn(tuple([1] + list(X_train.shape[1:]))),
                   os.path.join(args.out_directory, 'model.onnx'),
                   export_params=True,
