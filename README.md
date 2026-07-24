@@ -33,31 +33,35 @@ You run this pipeline via Docker. This encapsulates all dependencies and package
     $ docker build -t custom-ml-pytorch .
     ```
 
-9. Run the container to test the script (you don't need to rebuild the container if you make changes):
+9. Run the container on GPU to test the script (you don't need to rebuild the container if you make changes):
 
     **macOS, Linux**
 
     ```
-    $ docker run --rm -v $PWD:/app custom-ml-pytorch --data-directory /app/data --epochs 30 --learning-rate 0.01 --out-directory out/
+    $ docker run --gpus all --rm -v $PWD:/app custom-ml-pytorch --data-directory /app/data --epochs 30 --learning-rate 0.01 --out-directory out/
     ```
 
     **Windows (Command prompt)**
 
     ```
-    $ docker run --rm -v "%cd%":/app custom-ml-pytorch --data-directory /app/data --epochs 30 --learning-rate 0.01 --out-directory out/
+    $ docker run --gpus all --rm -v "%cd%":/app custom-ml-pytorch --data-directory /app/data --epochs 30 --learning-rate 0.01 --out-directory out/
     ```
 
     **Windows (Powershell)**
 
     ```
-    $ docker run --rm -v ${PWD}$:/app custom-ml-pytorch --data-directory /app/data --epochs 30 --learning-rate 0.01 --out-directory out/
+    $ docker run --gpus all --rm -v ${PWD}$:/app custom-ml-pytorch --data-directory /app/data --epochs 30 --learning-rate 0.01 --out-directory out/
     ```
 
-10. This creates an .onnx file in the 'out' directory.
+10. The script should print `Training on cuda:0` when Docker has GPU access. To test CPU fallback, remove `--gpus all`; the script should print `Training on cpu` and still complete.
+
+11. This creates one self-contained .onnx file in the 'out' directory.
 
 #### Adding extra dependencies
 
 If you have extra packages that you want to install within the container, add them to `requirements.txt` and rebuild the container.
+
+PyTorch is installed in the Dockerfile from the CUDA 12.9 wheel index with only the CUDA wheel libraries that are not already supplied by the base image. This keeps the image smaller than installing the full default PyTorch CUDA dependency set from PyPI.
 
 #### Adding new arguments
 
