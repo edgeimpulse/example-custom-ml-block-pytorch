@@ -5,3 +5,7 @@ out/
 data/
 .DS_Store
 GOALS.md
+.ei-project-config.json
+scripts/node_modules/
+out-*/
+out*.log
