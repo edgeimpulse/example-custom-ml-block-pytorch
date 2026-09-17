@@ -67,7 +67,7 @@ Prefer to run in Docker (although you could create a venv if you want to test so
 
     > `--network=none` is set here because the ML block will not have internet access when pushed to Edge Impulse! Add any files etc. that you need to the Docker container.
 
-You're now ready to implement the new architecture. You can modify `train.py` (and other Python) files without having to rebuild the container. Once training finishes you should have a saved_model.zip file in the `out/` directory.
+You're now ready to implement the new architecture. You can modify `train.py` (and other Python) files without having to rebuild the container. Once training finishes you should have a model.onnx file in the `out/` directory.
 
 ## Parameters
 
