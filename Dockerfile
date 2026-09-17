@@ -1,5 +1,5 @@
 # Simple Ubuntu 24.04 base image with Python3.12 and CUDA setup already (for GPU training)
-FROM public.ecr.aws/g7a8t7v6/ei-custom-ml-block-base:v1.95.5
+FROM public.ecr.aws/g7a8t7v6/ei-custom-ml-block-base:v1.95.10
 
 # Copy Python requirements in and install them (--break-system-packages is required if we don't use a venv).
 
